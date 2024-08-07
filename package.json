@@ -1,0 +1,17 @@
+{
+  "name": "aave-serverless-express",
+  "version": "1.0.0",
+  "description": "RESTful api to interact with AAVE on various chains",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "author": "yashutanna",
+  "license": "ISC",
+  "dependencies": {
+    "@netlify/functions": "^2.8.1",
+    "@types/express": "^4.17.21",
+    "express": "^4.19.2",
+    "serverless-http": "^3.2.0"
+  }
+}
