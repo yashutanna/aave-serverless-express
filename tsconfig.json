@@ -5,7 +5,7 @@
     "strict": true,
     "moduleResolution": "node",
     "esModuleInterop": true,
-    "rootDir": "./netlify",
-    "outDir": "./dist"
+    "rootDir": "./src",
+    "outDir": "./netlify"
   }
 }
