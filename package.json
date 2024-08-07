@@ -4,7 +4,8 @@
   "description": "RESTful api to interact with AAVE on various chains",
   "main": "index.js",
   "scripts": {
-    "test": "test"
+    "test": "test",
+    "build": "tsc"
   },
   "author": "yashutanna",
   "license": "ISC",
