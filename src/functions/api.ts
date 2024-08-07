@@ -11,7 +11,7 @@ router.get('/*', (req, res, next) => {
     next()
 })
 
-api.use('/functions/api',
+api.use('/.netlify/functions/api',
     (req, res, next) => {
         console.log({ path: req.path})
         next()

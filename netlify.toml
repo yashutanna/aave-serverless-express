@@ -9,4 +9,4 @@ functions = "netlify/functions"
     force = true
     from = "/api/*"
     status = 200
-    to = "/functions/api/:path"
+    to = "/.netlify/functions/api/:splat"
