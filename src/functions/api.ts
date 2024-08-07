@@ -11,6 +11,12 @@ router.get('/*', (req, res, next) => {
     next()
 })
 
-api.use('/.netlify/functions/api', router); // Path must match the redirect in netlify.toml
+api.use('/functions/api',
+    (req, res, next) => {
+        console.log({ path: req.path})
+        next()
+    },
+    router
+); // Path must match the redirect in netlify.toml
 
 export const handler = serverless(api as Application);

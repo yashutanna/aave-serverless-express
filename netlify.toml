@@ -7,6 +7,6 @@ functions = "netlify/functions"
 
 [[redirects]]
     force = true
-    from = "/api/hello"
+    from = "/api/*"
     status = 200
-    to = "/.netlify/functions/api/hello"
+    to = "/functions/api/:path"
