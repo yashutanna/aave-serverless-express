@@ -6,6 +6,11 @@ const api = express();
 const router = Router();
 router.get("/hello", (req, res) => res.send("Hello World!"));
 
+router.get('/*', (req, res, next) => {
+    res.json({path: req.path});
+    next()
+})
+
 api.use('/.netlify/functions/api', router); // Path must match the redirect in netlify.toml
 
 export const handler = serverless(api as Application);
