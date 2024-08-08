@@ -40,13 +40,39 @@ export const coins: Coins = {
     }
 }
 
+const contractCoins: { [contractAddress: string]: string } = Object.entries(coins)
+    .reduce((acc, [coin, coinDetails]) => ({
+        ...acc,
+        ...Object.entries(coinDetails.networks)
+            .reduce((acc2, [network, networkDetails]) => ({
+                ...acc2,
+                ...Object.entries(networkDetails.chains)
+                    .reduce((acc, [chain, { contractAddress }]) => ({
+                        ...acc,
+                        [contractAddress.toLowerCase()]: coin
+                    }), {})
+            }), {})
+        })
+    , {});
+
+export function isSupportedToken(contractAddress: string) {
+    const coin = contractCoins[contractAddress.toLowerCase()];
+    return !!coin;
+}
+
 export function getCoinContractAddress(coin: string, chainId: number, networkType: NetworkTypes): string {
     const contractAddress = coins[coin]?.networks[networkType]?.chains[chainId].contractAddress;
     if(!contractAddress){
         throw new Error(`could not get coin contract address for coin(${coin}) network(${networkType.toString()}) chain(${chainId})`)
     }
     return contractAddress;
-
+}
+export function getCoinFromContractAddress(contractAddress: string): string {
+    const coin = contractCoins[contractAddress];
+    if(!coin){
+        throw new Error(`could not get coin for contractAddress(${contractAddress})`)
+    }
+    return coin;
 }
 export function getCoinDecimals(coin: string): number {
     const decimals = coins[coin]?.decimals;

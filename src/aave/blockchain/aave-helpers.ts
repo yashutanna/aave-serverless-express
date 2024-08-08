@@ -9,7 +9,6 @@ export type SupportedMarketType = {
     POOL_ADDRESSES_PROVIDER: string
     POOL: string
 }
-
 export const getMarketForNetworkAndChain = (networkType: NetworkTypes, chainId: number): SupportedMarketType => {
     switch (networkType) {
         case NetworkTypes.Arbitrum: {

@@ -12,8 +12,12 @@ export default function getBlockchainRouter(aave: Aave) {
         controller.getReserveInfo.bind(controller)
     );
 
-    router.get('/reserve/coin/:coin/user/:fromAddress',
+    router.get('/reserve/user/:fromAddress/',
         controller.getUserReserveInfo.bind(controller)
+    );
+
+    router.get('/reserve/user/:fromAddress/coin/:coin/',
+        controller.getUserReserveInfoForcoin.bind(controller)
     );
 
     router.post('/reserve/supply/coin/:coin/',
@@ -24,11 +28,15 @@ export default function getBlockchainRouter(aave: Aave) {
         controller.getUnsignedTxForWithdraw.bind(controller)
     );
 
+    router.post('/reserve/borrow/coin/:coin/',
+        controller.getUnsignedTxForBorrow.bind(controller)
+    );
+
     router.post('/reserve/disable-collateral/coin/:coin/',
         controller.getUnsignedTxForDisableCollateral.bind(controller)
     );
 
-    router.get('/erc20/allowance/coin/:coin/user/:fromAddress',
+    router.get('/erc20/allowance/user/:fromAddress/coin/:coin/',
         controller.getErc20Allowance.bind(controller)
     );
 

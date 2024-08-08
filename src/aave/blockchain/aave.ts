@@ -1,13 +1,19 @@
 import BigNumber from 'bignumber.js';
 import {ethers} from 'ethers';
-import {UiPoolDataProvider, ChainId, Pool} from '@aave/contract-helpers';
+import {ChainId, Pool, UiPoolDataProvider, InterestRate} from '@aave/contract-helpers';
 import {
     getMarketForNetworkAndChain,
     getTxDetailsFromExtendedTx,
     rayToDecimalString,
     SupportedMarketType
 } from './aave-helpers';
-import {fromMajorUnitToMinorUnit, fromMinorUnitToMajorUnit, getCoinContractAddress, NetworkTypes} from "./constants";
+import {
+    fromMajorUnitToMinorUnit,
+    fromMinorUnitToMajorUnit,
+    getCoinContractAddress,
+    getCoinFromContractAddress, isSupportedToken,
+    NetworkTypes
+} from "./constants";
 
 export default class Aave {
     poolDataProviderContract: UiPoolDataProvider;
@@ -56,21 +62,24 @@ export default class Aave {
         }
     }
 
-    async getUserBalances(coin: string, fromAddress: string) {
+    async getUserCoinBalances(coin: string, fromAddress: string) {
         const contractAddress = getCoinContractAddress(coin, this.chainId, this.networkType);
         if (!contractAddress) {
             throw new Error(`contract address not found for coin(${coin})`)
         }
-        const userReserves = await this.poolDataProviderContract.getUserReservesHumanized({
+        const userBalances = await this.getUserBalances(fromAddress)
+
+        return userBalances.filter(balance => balance.raw.underlyingAsset.toLowerCase() === contractAddress.toLowerCase());
+    }
+    async getUserBalances(fromAddress: string) {
+        const userReservesResponse = await this.poolDataProviderContract.getUserReservesHumanized({
             lendingPoolAddressProvider: this.market.POOL_ADDRESSES_PROVIDER,
             user: fromAddress,
         });
-
-        const coinReserves = userReserves.userReserves
-            .filter(reserve => reserve.underlyingAsset?.toLowerCase() === contractAddress?.toLowerCase())
-
-        return Promise.all(coinReserves.map(async reserve => {
+        const supportedReserves = userReservesResponse.userReserves.filter(reserve => isSupportedToken(reserve.underlyingAsset));
+        return Promise.all(supportedReserves.map(async (reserve) => {
             const aTokenBalance = reserve.scaledATokenBalance;
+            const coin = getCoinFromContractAddress(reserve.underlyingAsset);
             const currentBalance = await this.getUnderlyingTokenBalance(aTokenBalance, coin);
             return {
                 currentBalance: currentBalance,
@@ -111,6 +120,39 @@ export default class Aave {
         }
     }
 
+    async getUnsignedTxForBorrow(coin: string, user: string, amount: string) {
+        const contractAddress = getCoinContractAddress(coin, this.chainId, this.networkType);
+        if (!contractAddress) {
+            throw new Error(`contract address not found for coin(${coin})`)
+        }
+
+        await this.hasSufficientAllowance(coin, user, amount);
+
+        const reserve = await this.getCoinReserveData(coin);
+        const pool = new Pool(this.provider, {POOL: this.market.POOL});
+        /*
+        - @param `user` The ethereum address that will make the deposit
+        - @param `reserve` The ethereum address of the underlying asset
+        - @param `amount` The amount to be deposited
+        */
+        const txs = await pool.borrow({
+            user,
+            amount: fromMinorUnitToMajorUnit(amount, coin).toString(),
+            reserve: reserve.tokenAddress,
+            interestRateMode: InterestRate.Stable,
+        });
+
+        if (txs.length > 1) {
+            throw new Error(`should have only received 1 actionable tx from pool.withdraw. got ${txs.length}`);
+        }
+
+        try {
+            return getTxDetailsFromExtendedTx(user, this.provider, txs[0]);
+        } catch (e) {
+            throw new Error((e as Error).message)
+        }
+    }
+
     async getUnsignedTxForWithdraw(coin: string, user: string, amount: string) {
         const contractAddress = getCoinContractAddress(coin, this.chainId, this.networkType);
         if (!contractAddress) {
@@ -118,7 +160,7 @@ export default class Aave {
         }
         const reserve = await this.getCoinReserveData(coin);
         const pool = new Pool(this.provider, {POOL: this.market.POOL});
-        const userReserves = await this.getUserBalances(coin, user);
+        const userReserves = await this.getUserCoinBalances(coin, user);
         if (userReserves.length > 1) {
             throw new Error(`only support withdrawing from 1 reserve. for ${userReserves.length} for coin(${coin})`)
         }
@@ -157,7 +199,7 @@ export default class Aave {
         }
         const reserve = await this.getCoinReserveData(coin);
         const pool = new Pool(this.provider, {POOL: this.market.POOL});
-        const userReserves = await this.getUserBalances(coin, user);
+        const userReserves = await this.getUserCoinBalances(coin, user);
         if (userReserves.length > 1) {
             throw new Error(`only support changing collateral status for 1 reserve, got ${userReserves.length}`)
         }
