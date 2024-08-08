@@ -11,3 +11,7 @@
     from = "/api/*"
     status = 200
     to = "/.netlify/functions/api/:splat"
+
+[template.environment]
+NODE_HTTP_URL = "change me to your RPC Node's HTTP URL"
+CHAIN_ID = "change me to your Network Chain Id [mainnet=1][sepolia=11155111][arbitrum=][arbitrum-sepolia=]"
