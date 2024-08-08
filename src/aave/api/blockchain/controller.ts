@@ -20,7 +20,7 @@ export default class BlockchainController {
         res.status(200).json(reserveInfo);
     }
 
-    async getUserReserveInfoForcoin(req: Request, res: Response) {
+    async getUserReserveInfoForCoin(req: Request, res: Response) {
         const { coin, fromAddress } = req.params;
         const reserveInfo = await this.aave.getUserCoinBalances(coin, fromAddress)
         res.status(200).json(reserveInfo);
@@ -56,10 +56,21 @@ export default class BlockchainController {
         const unsignedBorrowTx = await this.aave.getUnsignedTxForBorrow(coin, fromAddress, amount)
         res.status(200).json(unsignedBorrowTx);
     }
+    async getUnsignedTxForRepay(req: Request, res: Response) {
+        const { coin } = req.params;
+        const { fromAddress, amount } = req.body;
+        const unsignedRepayTx = await this.aave.getUnsignedTxForRepay(coin, fromAddress, amount)
+        res.status(200).json(unsignedRepayTx);
+    }
     async getUnsignedTxForDisableCollateral(req: Request, res: Response) {
         const { coin } = req.params;
         const { fromAddress } = req.body;
         const unsignedDisableCollateralTx = await this.aave.getUnsignedTxForDisableCollateral(coin, fromAddress)
         res.status(200).json(unsignedDisableCollateralTx);
+    }
+    async broadcastSignedTx(req: Request, res: Response) {
+        const { signedTx } = req.body;
+        const broadcastResponse = await this.aave.broadcastSignedTx(signedTx)
+        res.status(200).json(broadcastResponse);
     }
 }

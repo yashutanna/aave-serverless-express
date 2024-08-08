@@ -79,10 +79,13 @@ export default class Aave {
         const supportedReserves = userReservesResponse.userReserves.filter(reserve => isSupportedToken(reserve.underlyingAsset));
         return Promise.all(supportedReserves.map(async (reserve) => {
             const aTokenBalance = reserve.scaledATokenBalance;
+            const scaledVariableDebt = reserve.scaledVariableDebt;
             const coin = getCoinFromContractAddress(reserve.underlyingAsset);
             const currentBalance = await this.getUnderlyingTokenBalance(aTokenBalance, coin);
+            const currentDebt = await this.getUnderlyingVariableDebtBalance(scaledVariableDebt, coin);
             return {
-                currentBalance: currentBalance,
+                currentDebt,
+                currentBalance,
                 raw: reserve
             };
         }))
@@ -130,20 +133,43 @@ export default class Aave {
 
         const reserve = await this.getCoinReserveData(coin);
         const pool = new Pool(this.provider, {POOL: this.market.POOL});
-        /*
-        - @param `user` The ethereum address that will make the deposit
-        - @param `reserve` The ethereum address of the underlying asset
-        - @param `amount` The amount to be deposited
-        */
         const txs = await pool.borrow({
             user,
             amount: fromMinorUnitToMajorUnit(amount, coin).toString(),
             reserve: reserve.tokenAddress,
-            interestRateMode: InterestRate.Stable,
+            interestRateMode: InterestRate.Variable,
         });
 
         if (txs.length > 1) {
-            throw new Error(`should have only received 1 actionable tx from pool.withdraw. got ${txs.length}`);
+            throw new Error(`should have only received 1 actionable tx from pool.borrow. got ${txs.length}`);
+        }
+
+        try {
+            return getTxDetailsFromExtendedTx(user, this.provider, txs[0]);
+        } catch (e) {
+            throw new Error((e as Error).message)
+        }
+    }
+
+    async getUnsignedTxForRepay(coin: string, user: string, amount: string) {
+        const contractAddress = getCoinContractAddress(coin, this.chainId, this.networkType);
+        if (!contractAddress) {
+            throw new Error(`contract address not found for coin(${coin})`)
+        }
+
+        await this.hasSufficientAllowance(coin, user, amount);
+
+        const reserve = await this.getCoinReserveData(coin);
+        const pool = new Pool(this.provider, {POOL: this.market.POOL});
+        const txs = await pool.repay({
+            user,
+            amount: fromMinorUnitToMajorUnit(amount, coin).toString(),
+            reserve: reserve.tokenAddress,
+            interestRateMode: InterestRate.Variable,
+        });
+
+        if (txs.length > 1) {
+            throw new Error(`should have only received 1 actionable tx from pool.repay. got ${txs.length}`);
         }
 
         try {
@@ -258,11 +284,20 @@ export default class Aave {
         const index = reserveData.raw.liquidityIndex
         return rayToDecimalString(new BigNumber(index).multipliedBy(aTokenBalance).toFixed(0)).split('.')[0]
     }
+    private async getUnderlyingVariableDebtBalance(scaledVariableDebt: string, coin: string) {
+        const reserveData = await this.getCoinReserveData(coin);
+        const index = reserveData.raw.variableBorrowIndex
+        return rayToDecimalString(new BigNumber(index).multipliedBy(scaledVariableDebt).toFixed(0)).split('.')[0]
+    }
 
     private async hasSufficientAllowance(coin: string, user: string, amount: string) {
         const allowanceRemaining = await this.getErc20Allowance(coin, user);
         if (new BigNumber(allowanceRemaining).lt(amount)) {
             throw new Error(`allowance(${fromMinorUnitToMajorUnit(allowanceRemaining, coin).toString()}) is not sufficient for supply transaction for amount(${fromMinorUnitToMajorUnit(amount, coin).toString()})`)
         }
+    }
+
+    async broadcastSignedTx(signedTx: string) {
+        return this.provider.sendTransaction(signedTx)
     }
 }
