@@ -84,6 +84,7 @@ export default class Aave {
             const currentBalance = await this.getUnderlyingTokenBalance(aTokenBalance, coin);
             const currentDebt = await this.getUnderlyingVariableDebtBalance(scaledVariableDebt, coin);
             return {
+                coin,
                 currentDebt,
                 currentBalance,
                 raw: reserve

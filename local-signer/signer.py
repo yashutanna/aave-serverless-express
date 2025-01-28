@@ -17,7 +17,7 @@ def sign_transaction(unsigned_tx_json, private_key):
         unsigned_tx['gas'] = unsigned_tx.pop('gasLimit')
 
     # Ensure all necessary fields are present in the unsigned transaction
-    required_fields = ['nonce', 'gasPrice', 'gas', 'to', 'value', 'data']
+    required_fields = ['nonce', 'gasPrice', 'gas', 'value', 'data']
     missing_fields = [field for field in required_fields if field not in unsigned_tx]
     if missing_fields:
         raise ValueError(f"Missing required fields: {', '.join(missing_fields)}")

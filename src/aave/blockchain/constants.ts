@@ -37,6 +37,21 @@ export const coins: Coins = {
                 }
             }
         }
+    },
+    weth: {
+        decimals: 18,
+        networks: {
+            [NetworkTypes.Arbitrum]: {
+                chains: {
+                    42161: { contractAddress: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1'},
+                }
+            },
+            [NetworkTypes.Ethereum]: {
+                chains: {
+                    1: { contractAddress: '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2' }
+                }
+            }
+        }
     }
 }
 
